@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:ezanvakti.emushaf.net)",
+      "Bash(curl:*)"
+    ]
+  }
+}

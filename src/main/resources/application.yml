@@ -1,0 +1,78 @@
+spring:
+  application:
+    name: vakit-niyet-backend
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/vakitniyet}
+    username: ${DB_USERNAME:vakitniyet}
+    password: ${DB_PASSWORD:vakitniyet}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+server:
+  port: 8080
+  servlet:
+    context-path: /v1
+
+jwt:
+  secret: ${JWT_SECRET:vakit-niyet-super-secret-key-change-in-production-min-256-bit}
+  expiration: 604800000      # 7 gün (ms)
+  refresh-expiration: 2592000000  # 30 gün (ms)
+
+apple:
+  bundle-id: ${APPLE_BUNDLE_ID:com.vakitniyet.app}
+  team-id: ${APPLE_TEAM_ID:}
+  key-id: ${APPLE_KEY_ID:}
+  private-key: ${APPLE_PRIVATE_KEY:}
+  subscription:
+    shared-secret: ${APPLE_SHARED_SECRET:}
+    verify-url: https://buy.itunes.apple.com/verifyReceipt
+    verify-url-sandbox: https://sandbox.itunes.apple.com/verifyReceipt
+  mapkit:
+    key-id: ${APPLE_MAPKIT_KEY_ID:}
+    team-id: ${APPLE_MAPKIT_TEAM_ID:}
+    private-key: ${APPLE_MAPKIT_PRIVATE_KEY:}
+
+overpass:
+  base-url: ${OVERPASS_BASE_URL:https://overpass-api.de/api/interpreter}
+
+diyanet:
+  api-url: ${DIYANET_API_URL:https://ezanvakti.emushaf.net}
+
+quran:
+  api-url: https://api.quran.com/api/v4
+  translation-id: 77
+
+trial:
+  days: 30
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    com.vakitniyet: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web.servlet.DispatcherServlet: DEBUG
