@@ -6,15 +6,21 @@ COPY gradlew .
 COPY gradle gradle
 RUN chmod +x gradlew
 
-# Gradle versiyonunu 8.8'e düşür (Spring Boot 3.3.0 ile uyumlu)
-RUN sed -i 's|gradle-.*-bin.zip|gradle-8.8-bin.zip|' gradle/wrapper/gradle-wrapper.properties
+# Gradle 8.8'e zorla (properties dosyasını komple yeniden yaz)
+RUN echo "distributionBase=GRADLE_USER_HOME" > gradle/wrapper/gradle-wrapper.properties && \
+    echo "distributionPath=wrapper/dists" >> gradle/wrapper/gradle-wrapper.properties && \
+    echo "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.8-bin.zip" >> gradle/wrapper/gradle-wrapper.properties && \
+    echo "networkTimeout=10000" >> gradle/wrapper/gradle-wrapper.properties && \
+    echo "validateDistributionUrl=true" >> gradle/wrapper/gradle-wrapper.properties && \
+    echo "zipStoreBase=GRADLE_USER_HOME" >> gradle/wrapper/gradle-wrapper.properties && \
+    echo "zipStorePath=wrapper/dists" >> gradle/wrapper/gradle-wrapper.properties
 
-# Dependency cache için önce build dosyalarını kopyala
+# Dependency cache
 COPY build.gradle.kts .
 COPY settings.gradle.kts .
 RUN ./gradlew dependencies --no-daemon || true
 
-# Kaynak kodu kopyala ve build et
+# Build
 COPY src src
 RUN ./gradlew bootJar --no-daemon -x test -x check
 
