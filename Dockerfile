@@ -6,6 +6,9 @@ COPY gradlew .
 COPY gradle gradle
 RUN chmod +x gradlew
 
+# Gradle versiyonunu 8.8'e düşür (Spring Boot 3.3.0 ile uyumlu)
+RUN sed -i 's|gradle-.*-bin.zip|gradle-8.8-bin.zip|' gradle/wrapper/gradle-wrapper.properties
+
 # Dependency cache için önce build dosyalarını kopyala
 COPY build.gradle.kts .
 COPY settings.gradle.kts .
