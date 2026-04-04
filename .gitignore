@@ -1,5 +1,11 @@
 # Secrets
 .env
+.env.*
+*.p8
+*.p12
+*.pem
+*.jks
+*.keystore
 
 # Gradle
 .gradle/
@@ -11,10 +17,18 @@ build/
 *.iml
 *.ipr
 *.iws
+out/
 
 # macOS
 .DS_Store
+**/.DS_Store
 
 # Logs
 *.log
 logs/
+
+# Spring Boot
+spring-shell.log
+
+# OS
+Thumbs.db
