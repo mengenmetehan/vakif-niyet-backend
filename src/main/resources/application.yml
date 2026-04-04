@@ -65,6 +65,11 @@ quran:
 trial:
   days: 30
 
+management:
+  endpoint:
+    health:
+      show-details: always
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
