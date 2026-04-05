@@ -13,10 +13,7 @@ class QuranDataInitializer(
 
     @PostConstruct
     fun seedIfEmpty() {
-        if (quranVerseService.hasAny()) {
-            log.info("Quran DB seed atlandı: ayetler zaten mevcut (${quranVerseService.count()} ayet) ")
-            return
-        }
+
 
         log.info("Quran DB boş, tüm ayetler çekiliyor...")
         val saved = quranVerseService.fetchAndSaveAll()
