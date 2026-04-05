@@ -26,7 +26,6 @@ class QuranVerseService(
      * Quran API'den tüm ayetleri çekip DB'ye kaydeder.
      * Zaten var olan ayetler (verse_key unique) atlanır.
      */
-    @Transactional
     fun fetchAndSaveAll(): Int {
         var saved = 0
 

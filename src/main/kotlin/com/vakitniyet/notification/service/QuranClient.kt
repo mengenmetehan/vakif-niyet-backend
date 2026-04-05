@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
+import java.time.Duration
 
 data class QuranVersesPage(
     val verses: List<QuranVerse>,
@@ -42,21 +43,27 @@ class QuranClient(
         var totalPages = Int.MAX_VALUE
 
         while (page <= totalPages) {
-            try {
-                val response = webClient.get()
-                    .uri("/verses?language=tr&words=false&translations=$translationId&fields=verse_key&per_page=$perPage&page=$page")
-                    .retrieve()
-                    .bodyToMono(QuranVersesPage::class.java)
-                    .block() ?: break
+            var success = false
+            repeat(3) retry@{ attempt ->
+                if (success) return@retry
+                try {
+                    val response = webClient.get()
+                        .uri("/verses?language=tr&words=false&translations=$translationId&fields=verse_key&per_page=$perPage&page=$page")
+                        .retrieve()
+                        .bodyToMono(QuranVersesPage::class.java)
+                        .timeout(Duration.ofSeconds(30))
+                        .block() ?: return@retry
 
-                totalPages = response.pagination.totalPages
-                log.info("Quran API sayfa $page/$totalPages alındı (${response.verses.size} ayet)")
-                onPage(response.verses)
-                page++
-            } catch (e: Exception) {
-                log.error("Quran API sayfa hatası: page=$page", e)
-                break
+                    totalPages = response.pagination.totalPages
+                    log.info("Quran API sayfa $page/$totalPages alındı (${response.verses.size} ayet)")
+                    onPage(response.verses)
+                    success = true
+                } catch (e: Exception) {
+                    log.warn("Quran API sayfa hatası (deneme ${attempt + 1}/3): page=$page — ${e.message}")
+                }
             }
+            if (!success) log.error("Quran API sayfa $page 3 denemede alınamadı, atlanıyor")
+            page++
         }
     }
 
