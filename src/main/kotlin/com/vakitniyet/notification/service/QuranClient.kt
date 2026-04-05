@@ -29,7 +29,7 @@ class QuranClient(
     private val webClient = WebClient.create(apiUrl)
 
     // Pair: (metin, kaynak) — örn. ("İman edip...", "Nisa 4:137")
-    fun getRandomVerse(): Pair<String, String>? {
+    fun fetchRandomVerse(): Pair<String, String>? {
         return try {
             val response = webClient.get()
                 .uri("/verses/random?language=tr&words=false&translations=$translationId&fields=verse_key")

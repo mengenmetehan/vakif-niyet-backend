@@ -106,6 +106,15 @@ class DailyNotificationScheduleBuilder(
             "Yatsi" to "Yatsı"
         )
 
+        // 0=İmsak, 1=Öğle, 2=İkindi, 3=Akşam, 4=Yatsı — günlük ayet cache index'i
+        val prayerIndexMap = mapOf(
+            "Imsak" to 0,
+            "Ogle" to 1,
+            "Ikindi" to 2,
+            "Aksam" to 3,
+            "Yatsi" to 4
+        )
+
         var count = 0
         var userCount = 0
         var userPage = 0
@@ -137,7 +146,9 @@ class DailyNotificationScheduleBuilder(
                     val minuteOfDay = (notifyAt.hour * 60 + notifyAt.minute).toDouble()
 
                     val label = prayerLabelMap[prayerKey] ?: prayerKey
-                    val value = "${deviceToken}|${label}|${settings.contentType}"
+                    val prayerIndex = prayerIndexMap[prayerKey] ?: 0
+                    // value format: deviceToken|label|contentType|prayerIndex
+                    val value = "${deviceToken}|${label}|${settings.contentType}|${prayerIndex}"
                     entries.getOrPut(minuteOfDay) { mutableListOf() }.add(value)
                 }
             }

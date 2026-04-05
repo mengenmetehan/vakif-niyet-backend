@@ -39,17 +39,18 @@ class PrayerNotificationDispatcher(
 
         for (value in entries) {
             val parts = value.split("|")
-            if (parts.size != 3) {
+            if (parts.size != 4) {
                 ops.remove(scheduleKey, value)
                 continue
             }
 
-            val (deviceToken, label, contentTypeStr) = parts
+            val (deviceToken, label, contentTypeStr, prayerIndexStr) = parts
             val contentType = runCatching {
                 NotificationContentType.valueOf(contentTypeStr)
             }.getOrDefault(NotificationContentType.KARMA)
+            val prayerIndex = prayerIndexStr.toIntOrNull() ?: 0
 
-            val (content, source) = contentProvider.getContent(contentType)
+            val (content, source) = contentProvider.getContent(contentType, prayerIndex)
 
             apnsService.send(
                 deviceToken = deviceToken,

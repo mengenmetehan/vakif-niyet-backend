@@ -1,12 +1,21 @@
 package com.vakitniyet.notification.service
 
 import com.vakitniyet.notification.entity.NotificationContentType
+import org.slf4j.LoggerFactory
+import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Component
 
 @Component
 class NotificationContentProvider(
-    private val quranClient: QuranClient
+    private val redisTemplate: StringRedisTemplate
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
+
+    companion object {
+        // index: 0=İmsak, 1=Öğle, 2=İkindi, 3=Akşam, 4=Yatsı
+        fun ayetKey(index: Int) = "content:daily:ayet:$index"
+        fun ayetSourceKey(index: Int) = "content:daily:ayet:$index:source"
+    }
 
     private val hadisler = listOf(
         "Namaz dinin direğidir." to "Tirmizî",
@@ -24,14 +33,19 @@ class NotificationContentProvider(
         "Rabbinin adını an ve her şeyden kendini çekerek yalnızca O'na yönel." to "Müzzemmil 73:8"
     )
 
-    fun getContent(type: NotificationContentType): Pair<String, String> {
+    fun getContent(type: NotificationContentType, prayerIndex: Int = 0): Pair<String, String> {
         return when (type) {
-            NotificationContentType.AYET -> fetchAyet()
+            NotificationContentType.AYET -> getDailyAyet(prayerIndex)
             NotificationContentType.HADIS -> hadisler.random()
-            NotificationContentType.KARMA -> if ((0..1).random() == 0) fetchAyet() else hadisler.random()
+            NotificationContentType.KARMA -> if ((0..1).random() == 0) getDailyAyet(prayerIndex) else hadisler.random()
         }
     }
 
-    private fun fetchAyet(): Pair<String, String> =
-        quranClient.getRandomVerse() ?: ayetFallback.random()
+    fun getDailyAyet(prayerIndex: Int): Pair<String, String> {
+        val text = redisTemplate.opsForValue().get(ayetKey(prayerIndex))
+        val source = redisTemplate.opsForValue().get(ayetSourceKey(prayerIndex))
+        if (text != null && source != null) return text to source
+        log.warn("Günlük ayet cache'de bulunamadı: index=$prayerIndex, fallback kullanılıyor")
+        return ayetFallback.random()
+    }
 }
