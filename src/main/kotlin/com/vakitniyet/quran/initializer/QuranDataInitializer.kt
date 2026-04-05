@@ -14,7 +14,7 @@ class QuranDataInitializer(
     @PostConstruct
     fun seedIfEmpty() {
         if (quranVerseService.hasAny()) {
-            log.info("Quran DB seed atlandı: ayetler zaten mevcut (${quranVerseService.count()} ayet)")
+            log.info("Quran DB seed atlandı: ayetler zaten mevcut (${quranVerseService.count()} ayet) ")
             return
         }
 
