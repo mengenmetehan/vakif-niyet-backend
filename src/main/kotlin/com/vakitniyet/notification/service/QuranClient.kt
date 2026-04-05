@@ -8,13 +8,7 @@ import org.springframework.web.reactive.function.client.WebClient
 import java.time.Duration
 
 data class QuranVersesPage(
-    val verses: List<QuranVerse>,
-    val pagination: QuranPagination
-)
-
-data class QuranPagination(
-    @JsonProperty("total_pages") val totalPages: Int,
-    @JsonProperty("current_page") val currentPage: Int
+    val verses: List<QuranVerse>
 )
 
 data class QuranVerse(
@@ -35,35 +29,30 @@ class QuranClient(
     private val webClient = WebClient.create(apiUrl)
 
     /**
-     * Tüm ayetleri sayfalı olarak getirir.
-     * Her sayfa için callback çağrılır — bellek dostu.
+     * 114 sureyi sırayla çekerek tüm ayetleri getirir.
+     * Her sure için callback çağrılır — bellek dostu.
      */
-    fun fetchAllVerses(perPage: Int = 50, onPage: (List<QuranVerse>) -> Unit) {
-        var page = 1
-        var totalPages = Int.MAX_VALUE
-
-        while (page <= totalPages) {
+    fun fetchAllVerses(onChapter: (List<QuranVerse>) -> Unit) {
+        for (sureNo in 1..114) {
             var success = false
             repeat(3) retry@{ attempt ->
                 if (success) return@retry
                 try {
                     val response = webClient.get()
-                        .uri("/verses?language=tr&words=false&translations=$translationId&fields=verse_key&per_page=$perPage&page=$page")
+                        .uri("/verses/by_chapter/$sureNo?language=tr&words=false&translations=$translationId&fields=verse_key&per_page=300")
                         .retrieve()
                         .bodyToMono(QuranVersesPage::class.java)
                         .timeout(Duration.ofSeconds(30))
                         .block() ?: return@retry
 
-                    totalPages = response.pagination.totalPages
-                    log.info("Quran API sayfa $page/$totalPages alındı (${response.verses.size} ayet)")
-                    onPage(response.verses)
+                    log.info("Sure $sureNo/114 alındı (${response.verses.size} ayet)")
+                    onChapter(response.verses)
                     success = true
                 } catch (e: Exception) {
-                    log.warn("Quran API sayfa hatası (deneme ${attempt + 1}/3): page=$page — ${e.message}")
+                    log.warn("Sure $sureNo hatası (deneme ${attempt + 1}/3): ${e.message}")
                 }
             }
-            if (!success) log.error("Quran API sayfa $page 3 denemede alınamadı, atlanıyor")
-            page++
+            if (!success) log.error("Sure $sureNo 3 denemede alınamadı, atlanıyor")
         }
     }
 
