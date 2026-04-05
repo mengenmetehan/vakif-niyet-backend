@@ -2,13 +2,18 @@ package com.vakitniyet.notification.service
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import org.slf4j.LoggerFactory
-import org.springframework.web.util.HtmlUtils
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
 
-data class QuranVerseResponse(
-    val verse: QuranVerse
+data class QuranVersesPage(
+    val verses: List<QuranVerse>,
+    val pagination: QuranPagination
+)
+
+data class QuranPagination(
+    @JsonProperty("total_pages") val totalPages: Int,
+    @JsonProperty("current_page") val currentPage: Int
 )
 
 data class QuranVerse(
@@ -28,22 +33,30 @@ class QuranClient(
     private val log = LoggerFactory.getLogger(javaClass)
     private val webClient = WebClient.create(apiUrl)
 
-    // Pair: (metin, kaynak) — örn. ("İman edip...", "Nisa 4:137")
-    fun fetchRandomVerse(): Pair<String, String>? {
-        return try {
-            val response = webClient.get()
-                .uri("/verses/random?language=tr&words=false&translations=$translationId&fields=verse_key")
-                .retrieve()
-                .bodyToMono(QuranVerseResponse::class.java)
-                .block() ?: return null
+    /**
+     * Tüm ayetleri sayfalı olarak getirir.
+     * Her sayfa için callback çağrılır — bellek dostu.
+     */
+    fun fetchAllVerses(perPage: Int = 50, onPage: (List<QuranVerse>) -> Unit) {
+        var page = 1
+        var totalPages = Int.MAX_VALUE
 
-            val raw = response.verse.translations.firstOrNull()?.text ?: return null
-            val text = HtmlUtils.htmlUnescape(raw)
-            val source = formatVerseKey(response.verse.verseKey)
-            text to source
-        } catch (e: Exception) {
-            log.error("Quran API hatası", e)
-            null
+        while (page <= totalPages) {
+            try {
+                val response = webClient.get()
+                    .uri("/verses?language=tr&words=false&translations=$translationId&fields=verse_key&per_page=$perPage&page=$page")
+                    .retrieve()
+                    .bodyToMono(QuranVersesPage::class.java)
+                    .block() ?: break
+
+                totalPages = response.pagination.totalPages
+                log.info("Quran API sayfa $page/$totalPages alındı (${response.verses.size} ayet)")
+                onPage(response.verses)
+                page++
+            } catch (e: Exception) {
+                log.error("Quran API sayfa hatası: page=$page", e)
+                break
+            }
         }
     }
 
