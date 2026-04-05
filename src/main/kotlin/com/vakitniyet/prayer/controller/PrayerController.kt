@@ -32,15 +32,21 @@ class PrayerController(
         return ResponseEntity.ok(prayerService.getDay(userId, date))
     }
 
-    // Aylık takvim
+    // Aylık takvim — year+month veya page (0=bu ay, -1=geçen ay, vb.) ile erişilebilir
     @GetMapping("/month")
     fun getMonth(
         authentication: Authentication,
-        @RequestParam year: Int,
-        @RequestParam month: Int
+        @RequestParam(required = false) year: Int?,
+        @RequestParam(required = false) month: Int?,
+        @RequestParam(required = false, defaultValue = "0") page: Int
     ): ResponseEntity<MonthResponse> {
         val userId = authentication.principal as UUID
-        return ResponseEntity.ok(prayerService.getMonth(userId, year, month))
+        val base = if (year != null && month != null) {
+            java.time.LocalDate.of(year, month, 1)
+        } else {
+            java.time.LocalDate.now().withDayOfMonth(1)
+        }.plusMonths(page.toLong())
+        return ResponseEntity.ok(prayerService.getMonth(userId, base.year, base.monthValue))
     }
 
     // Namaz tikle

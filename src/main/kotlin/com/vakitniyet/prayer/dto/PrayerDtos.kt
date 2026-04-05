@@ -21,12 +21,24 @@ data class DayResponse(
 )
 
 data class MonthResponse(
-    val days: List<DaySummary>
+    val year: Int,
+    val month: Int,
+    val days: List<DaySummary>,
+    val prevYear: Int,
+    val prevMonth: Int,
+    val nextYear: Int,
+    val nextMonth: Int
 )
 
 data class DaySummary(
     val date: String,
-    val doneCount: Int
+    val doneCount: Int,
+    val prayers: List<DonePrayer>
+)
+
+data class DonePrayer(
+    val prayerName: String,
+    val prayedAt: String?
 )
 
 data class StreakResponse(

@@ -36,25 +36,38 @@ class PrayerService(
         return getDayResponse(userId, date)
     }
 
-    // Aylık özet (takvim grid için)
+    // Aylık özet (takvim grid için) - hangi namazların kılındığı dahil
     fun getMonth(userId: UUID, year: Int, month: Int): MonthResponse {
         val start = LocalDate.of(year, month, 1)
         val end = start.withDayOfMonth(start.lengthOfMonth())
 
-        val doneCounts = prayerLogRepository.countDoneByDate(userId, start, end)
-            .associate {
-                (it[0] as LocalDate) to (it[1] as Long).toInt()
-            }
+        val logs = prayerLogRepository.findByUserIdAndPrayerDateBetween(userId, start, end)
+        val logsByDate = logs.filter { it.isDone }.groupBy { it.prayerDate }
 
         val days = (1..start.lengthOfMonth()).map { day ->
             val date = LocalDate.of(year, month, day)
+            val dayLogs = logsByDate[date] ?: emptyList()
             DaySummary(
                 date = date.format(dateFmt),
-                doneCount = doneCounts[date] ?: 0
+                doneCount = dayLogs.size,
+                prayers = dayLogs
+                    .sortedBy { it.prayerName.ordinal }
+                    .map { DonePrayer(prayerName = it.prayerName.name, prayedAt = it.prayedAt?.format(dtFmt)) }
             )
         }
 
-        return MonthResponse(days = days)
+        val prev = start.minusMonths(1)
+        val next = start.plusMonths(1)
+
+        return MonthResponse(
+            year = year,
+            month = month,
+            days = days,
+            prevYear = prev.year,
+            prevMonth = prev.monthValue,
+            nextYear = next.year,
+            nextMonth = next.monthValue
+        )
     }
 
     // Namaz tikle / tikini kaldır
