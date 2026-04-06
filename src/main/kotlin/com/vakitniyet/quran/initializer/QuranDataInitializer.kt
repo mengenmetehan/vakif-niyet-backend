@@ -15,7 +15,7 @@ class QuranDataInitializer(
     fun seedIfEmpty() {
 
 
-        log.info("Quran DB boş, tüm ayetler çekiliyor...")
+        log.info("Quran DB boş, tüm ayetler çekiliyor... ")
         val saved = quranVerseService.fetchAndSaveAll()
         log.info("Quran DB seed tamamlandı: $saved ayet eklendi")
     }
