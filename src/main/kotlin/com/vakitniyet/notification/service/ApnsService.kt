@@ -27,10 +27,7 @@ class ApnsService(
             null
         } else {
             try {
-                val normalizedKey = privateKey.replace("\\n", "\n").trim().let { key ->
-                    if (key.startsWith("-----")) key
-                    else "-----BEGIN PRIVATE KEY-----\n$key\n-----END PRIVATE KEY-----"
-                }
+                val normalizedKey = buildNormalizedKey(privateKey)
                 ApnsClientBuilder()
                     .setApnsServer(ApnsClientBuilder.PRODUCTION_APNS_HOST)
                     .setSigningKey(
@@ -45,6 +42,19 @@ class ApnsService(
                 null
             }
         }
+    }
+
+    private fun buildNormalizedKey(raw: String): String {
+        // Replace literal \n with actual newlines, strip whitespace
+        val decoded = raw.replace("\\n", "\n")
+        // Remove any existing PEM headers/footers and all whitespace to get pure base64
+        val base64Body = decoded
+            .lines()
+            .filterNot { it.startsWith("-----") }
+            .joinToString("") { it.trim() }
+        // Re-wrap base64 body into 64-char lines as required by PEM spec
+        val wrapped = base64Body.chunked(64).joinToString("\n")
+        return "-----BEGIN PRIVATE KEY-----\n$wrapped\n-----END PRIVATE KEY-----"
     }
 
     fun send(deviceToken: String, title: String, body: String) {
