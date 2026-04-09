@@ -45,20 +45,23 @@ class ApnsService(
     }
 
     private fun buildNormalizedKey(raw: String): String {
-        // Replace literal \n with actual newlines, strip whitespace
-        val decoded = raw.replace("\\n", "\n")
-        // Remove any existing PEM headers/footers and all whitespace to get pure base64
-        val base64Body = decoded
+        // Normalize: replace literal \n, then extract pure base64 body
+        val base64Body = raw
+            .replace("\\n", "\n")
+            .replace("\r", "")
             .lines()
-            .filterNot { it.startsWith("-----") }
-            .joinToString("") { it.trim() }
-        // Re-wrap base64 body into 64-char lines as required by PEM spec
+            .map { it.trim() }
+            .filterNot { it.startsWith("-----") || it.isBlank() }
+            .joinToString("")
         val wrapped = base64Body.chunked(64).joinToString("\n")
         return "-----BEGIN PRIVATE KEY-----\n$wrapped\n-----END PRIVATE KEY-----"
     }
 
     fun send(deviceToken: String, title: String, body: String) {
-        val apnsClient = client ?: return
+        val apnsClient = client ?: run {
+            log.error("APNs client null, bildirim gönderilemedi (key yapılandırması hatalı)")
+            return
+        }
 
         val payload = SimpleApnsPayloadBuilder()
             .setAlertTitle(title)
