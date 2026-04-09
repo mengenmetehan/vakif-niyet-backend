@@ -61,34 +61,11 @@ class ApnsService(
             .encodeToString("""{"iss":"$teamId","iat":$issuedAt}""".toByteArray())
         val signingInput = "$header.$payload"
 
-        val signer = java.security.Signature.getInstance("SHA256withECDSA")
+        val signer = java.security.Signature.getInstance("SHA256withECDSAinP1363Format")
         signer.initSign(ecPrivateKey)
         signer.update(signingInput.toByteArray())
-        val derSignature = signer.sign()
-
-        val signature = Base64.getUrlEncoder().withoutPadding().encodeToString(derToJoseSignature(derSignature))
+        val signature = Base64.getUrlEncoder().withoutPadding().encodeToString(signer.sign())
         return "$signingInput.$signature"
-    }
-
-    private fun derToJoseSignature(der: ByteArray): ByteArray {
-        // Convert DER-encoded signature to JOSE (R || S) format
-        var offset = 2
-        val rLen = der[offset + 1].toInt() and 0xff
-        offset += 2
-        val rStart = if (der[offset].toInt() == 0) offset + 1 else offset
-        val rEnd = offset + rLen
-        offset = rEnd + 2
-        val sLen = der[offset - 1].toInt() and 0xff
-        val sStart = if (der[offset].toInt() == 0) offset + 1 else offset
-        val sEnd = offset + sLen
-
-        val r = der.copyOfRange(rStart, rEnd)
-        val s = der.copyOfRange(sStart, sEnd)
-
-        val result = ByteArray(64)
-        r.copyInto(result, 32 - r.size)
-        s.copyInto(result, 64 - s.size)
-        return result
     }
 
     fun send(deviceToken: String, title: String, body: String) {
