@@ -1,5 +1,6 @@
 package com.vakitniyet.notification.scheduler
 
+import com.vakitniyet.common.util.TraceContext
 import com.vakitniyet.notification.entity.NotificationContentType
 import com.vakitniyet.notification.scheduler.DailyNotificationScheduleBuilder.Companion.SCHEDULE_KEY_PREFIX
 import com.vakitniyet.notification.service.ApnsService
@@ -25,6 +26,7 @@ class PrayerNotificationDispatcher(
 
     @Scheduled(fixedDelay = 60_000)
     fun dispatch() {
+        TraceContext.newTrace()
         val now = LocalTime.now(zone)
         val today = LocalDate.now(zone).format(dateFmt)
         val minuteOfDay = (now.hour * 60 + now.minute).toDouble()
@@ -62,5 +64,6 @@ class PrayerNotificationDispatcher(
         }
 
         log.info("Bildirim gönderimi tamamlandı: ${entries.size} bildirim gönderildi, minute=$minuteOfDay")
+        TraceContext.clear()
     }
 }
