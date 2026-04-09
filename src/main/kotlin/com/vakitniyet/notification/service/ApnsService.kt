@@ -79,7 +79,7 @@ class ApnsService(
         }
 
         val token = deviceToken.replace("[^a-fA-F0-9]".toRegex(), "")
-        val payload = """{"aps":{"alert":{"title":"$title","body":"$body"},"sound":"default"}}"""
+        val payload = """{"aps":{"alert":{"title":"$title","body":"$body"},"sound":"salat_hadra.caf"}}"""
         val jwt = buildJwt()
 
         val request = HttpRequest.newBuilder()
