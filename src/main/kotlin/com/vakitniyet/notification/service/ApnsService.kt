@@ -6,6 +6,8 @@ import com.eatthepath.pushy.apns.auth.ApnsSigningKey
 import com.eatthepath.pushy.apns.util.SimpleApnsPayloadBuilder
 import com.eatthepath.pushy.apns.util.SimpleApnsPushNotification
 import com.eatthepath.pushy.apns.util.TokenUtil
+import io.netty.channel.socket.nio.NioSocketChannel
+import io.netty.resolver.DefaultAddressResolverGroup
 import jakarta.annotation.PreDestroy
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -36,6 +38,8 @@ class ApnsService(
                             teamId, keyId
                         )
                     )
+                    .setChannelType(NioSocketChannel::class.java)
+                    .setAddressResolverGroup(DefaultAddressResolverGroup.INSTANCE)
                     .build()
             } catch (e: Exception) {
                 log.error("APNs client oluşturulamadı", e)
