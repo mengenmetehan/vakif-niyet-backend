@@ -88,6 +88,8 @@ class ApnsService(
             .header("authorization", "bearer $jwt")
             .header("apns-topic", bundleId)
             .header("apns-push-type", "alert")
+            .header("apns-priority", "10")
+            .header("content-type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(payload))
             .build()
 
