@@ -96,6 +96,16 @@ class NotificationSettingsController(
         )
     }
 
+    @PostMapping("/developer/apns-test")
+    fun apnsTest(@RequestParam deviceToken: String): ResponseEntity<Map<String, String>> {
+        apnsService.send(
+            deviceToken = deviceToken,
+            title = "APNs Test",
+            body = "Bu bir test bildirimidir"
+        )
+        return ResponseEntity.ok(mapOf("status" to "gönderildi, logları kontrol et", "deviceToken" to deviceToken))
+    }
+
     @PostMapping("/developer/dispatch")
     fun triggerDispatch(): ResponseEntity<Map<String, String>> {
         dispatcher.dispatch()

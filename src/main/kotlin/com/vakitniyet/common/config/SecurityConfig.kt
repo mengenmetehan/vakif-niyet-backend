@@ -27,7 +27,8 @@ class SecurityConfig(
                     "/api/public/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html",
-                    "/v3/api-docs/**"
+                    "/v3/api-docs/**",
+                    "/api/notification/developer/apns-test"
                 ).permitAll()
                 it.anyRequest().authenticated()
             }
