@@ -5,6 +5,7 @@ import com.vakitniyet.notification.dto.NotificationSettingsResponse
 import com.vakitniyet.notification.dto.NotificationTestResponse
 import com.vakitniyet.notification.dto.UpdateNotificationSettingsRequest
 import com.vakitniyet.notification.entity.NotificationContentType
+import com.vakitniyet.notification.scheduler.PrayerNotificationDispatcher
 import com.vakitniyet.notification.service.ApnsService
 import com.vakitniyet.notification.service.NotificationContentProvider
 import com.vakitniyet.notification.service.NotificationSettingsService
@@ -20,7 +21,8 @@ class NotificationSettingsController(
     private val service: NotificationSettingsService,
     private val contentProvider: NotificationContentProvider,
     private val apnsService: ApnsService,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val dispatcher: PrayerNotificationDispatcher
 ) {
     private val log = LoggerFactory.getLogger(NotificationSettingsController::class.java)
 
@@ -92,6 +94,12 @@ class NotificationSettingsController(
                 sent = sent
             )
         )
+    }
+
+    @PostMapping("/developer/dispatch")
+    fun triggerDispatch(): ResponseEntity<Map<String, String>> {
+        dispatcher.dispatch()
+        return ResponseEntity.ok(mapOf("status" to "dispatch tetiklendi, logları kontrol et"))
     }
 
     @PutMapping("/settings")

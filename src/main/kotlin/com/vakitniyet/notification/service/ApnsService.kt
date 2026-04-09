@@ -76,6 +76,8 @@ class ApnsService(
                 log.error("APNs gönderim hatası: deviceToken=$deviceToken", ex)
             } else if (!response.isAccepted) {
                 log.warn("APNs reddedildi: reason=${response.rejectionReason}, deviceToken=$deviceToken")
+            } else {
+                log.info("APNs başarılı: deviceToken=$deviceToken")
             }
         }
     }
