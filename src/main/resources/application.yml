@@ -1,6 +1,10 @@
 spring:
   application:
     name: vakit-niyet-backend
+  reactor:
+    netty:
+      dns:
+        use-native: false
 
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/vakitniyet}

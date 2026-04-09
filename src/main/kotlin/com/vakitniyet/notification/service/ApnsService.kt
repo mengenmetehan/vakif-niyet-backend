@@ -1,16 +1,17 @@
 package com.vakitniyet.notification.service
 
-import com.eatthepath.pushy.apns.ApnsClient
-import com.eatthepath.pushy.apns.ApnsClientBuilder
-import com.eatthepath.pushy.apns.auth.ApnsSigningKey
-import com.eatthepath.pushy.apns.util.SimpleApnsPayloadBuilder
-import com.eatthepath.pushy.apns.util.SimpleApnsPushNotification
-import com.eatthepath.pushy.apns.util.TokenUtil
-import jakarta.annotation.PreDestroy
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
-import java.io.ByteArrayInputStream
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.security.KeyFactory
+import java.security.interfaces.ECPrivateKey
+import java.security.spec.PKCS8EncodedKeySpec
+import java.time.Instant
+import java.util.Base64
 
 @Service
 class ApnsService(
@@ -21,31 +22,25 @@ class ApnsService(
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    private val client: ApnsClient? by lazy {
+    private val httpClient: HttpClient = HttpClient.newBuilder()
+        .version(HttpClient.Version.HTTP_2)
+        .build()
+
+    private val ecPrivateKey: ECPrivateKey? by lazy {
         if (teamId.isBlank() || keyId.isBlank() || privateKey.isBlank()) {
             log.warn("APNs yapılandırması eksik, bildirimler devre dışı")
             null
         } else {
             try {
-                val normalizedKey = buildNormalizedKey(privateKey)
-                ApnsClientBuilder()
-                    .setApnsServer(ApnsClientBuilder.PRODUCTION_APNS_HOST)
-                    .setSigningKey(
-                        ApnsSigningKey.loadFromInputStream(
-                            ByteArrayInputStream(normalizedKey.toByteArray()),
-                            teamId, keyId
-                        )
-                    )
-                    .build()
+                loadPrivateKey(privateKey)
             } catch (e: Exception) {
-                log.error("APNs client oluşturulamadı", e)
+                log.error("APNs private key yüklenemedi", e)
                 null
             }
         }
     }
 
-    private fun buildNormalizedKey(raw: String): String {
-        // Normalize: replace literal \n, then extract pure base64 body
+    private fun loadPrivateKey(raw: String): ECPrivateKey {
         val base64Body = raw
             .replace("\\n", "\n")
             .replace("\r", "")
@@ -53,40 +48,77 @@ class ApnsService(
             .map { it.trim() }
             .filterNot { it.startsWith("-----") || it.isBlank() }
             .joinToString("")
-        val wrapped = base64Body.chunked(64).joinToString("\n")
-        return "-----BEGIN PRIVATE KEY-----\n$wrapped\n-----END PRIVATE KEY-----"
+        val keyBytes = Base64.getDecoder().decode(base64Body)
+        val keySpec = PKCS8EncodedKeySpec(keyBytes)
+        return KeyFactory.getInstance("EC").generatePrivate(keySpec) as ECPrivateKey
+    }
+
+    private fun buildJwt(): String {
+        val issuedAt = Instant.now().epochSecond
+        val header = Base64.getUrlEncoder().withoutPadding()
+            .encodeToString("""{"alg":"ES256","kid":"$keyId"}""".toByteArray())
+        val payload = Base64.getUrlEncoder().withoutPadding()
+            .encodeToString("""{"iss":"$teamId","iat":$issuedAt}""".toByteArray())
+        val signingInput = "$header.$payload"
+
+        val signer = java.security.Signature.getInstance("SHA256withECDSA")
+        signer.initSign(ecPrivateKey)
+        signer.update(signingInput.toByteArray())
+        val derSignature = signer.sign()
+
+        val signature = Base64.getUrlEncoder().withoutPadding().encodeToString(derToJoseSignature(derSignature))
+        return "$signingInput.$signature"
+    }
+
+    private fun derToJoseSignature(der: ByteArray): ByteArray {
+        // Convert DER-encoded signature to JOSE (R || S) format
+        var offset = 2
+        val rLen = der[offset + 1].toInt() and 0xff
+        offset += 2
+        val rStart = if (der[offset].toInt() == 0) offset + 1 else offset
+        val rEnd = offset + rLen
+        offset = rEnd + 2
+        val sLen = der[offset - 1].toInt() and 0xff
+        val sStart = if (der[offset].toInt() == 0) offset + 1 else offset
+        val sEnd = offset + sLen
+
+        val r = der.copyOfRange(rStart, rEnd)
+        val s = der.copyOfRange(sStart, sEnd)
+
+        val result = ByteArray(64)
+        r.copyInto(result, 32 - r.size)
+        s.copyInto(result, 64 - s.size)
+        return result
     }
 
     fun send(deviceToken: String, title: String, body: String) {
-        val apnsClient = client ?: run {
-            log.error("APNs client null, bildirim gönderilemedi (key yapılandırması hatalı)")
+        if (ecPrivateKey == null) {
+            log.error("APNs key yüklenemedi, bildirim gönderilemedi")
             return
         }
 
-        val payload = SimpleApnsPayloadBuilder()
-            .setAlertTitle(title)
-            .setAlertBody(body)
+        val token = deviceToken.replace("[^a-fA-F0-9]".toRegex(), "")
+        val payload = """{"aps":{"alert":{"title":"$title","body":"$body"}}}"""
+        val jwt = buildJwt()
+
+        val request = HttpRequest.newBuilder()
+            .uri(URI.create("https://api.push.apple.com/3/device/$token"))
+            .version(HttpClient.Version.HTTP_2)
+            .header("authorization", "bearer $jwt")
+            .header("apns-topic", bundleId)
+            .header("apns-push-type", "alert")
+            .POST(HttpRequest.BodyPublishers.ofString(payload))
             .build()
 
-        val notification = SimpleApnsPushNotification(
-            TokenUtil.sanitizeTokenString(deviceToken),
-            bundleId,
-            payload
-        )
-
-        apnsClient.sendNotification(notification).whenComplete { response, ex ->
-            if (ex != null) {
-                log.error("APNs gönderim hatası: deviceToken=$deviceToken", ex)
-            } else if (!response.isAccepted) {
-                log.warn("APNs reddedildi: reason=${response.rejectionReason}, deviceToken=$deviceToken")
-            } else {
-                log.info("APNs başarılı: deviceToken=$deviceToken")
+        httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+            .whenComplete { response, ex ->
+                if (ex != null) {
+                    log.error("APNs gönderim hatası: deviceToken=$deviceToken", ex)
+                } else if (response.statusCode() == 200) {
+                    log.info("APNs başarılı: deviceToken=$deviceToken")
+                } else {
+                    log.warn("APNs reddedildi: status=${response.statusCode()}, body=${response.body()}, deviceToken=$deviceToken")
+                }
             }
-        }
-    }
-
-    @PreDestroy
-    fun shutdown() {
-        client?.close()
     }
 }
