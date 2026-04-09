@@ -9,5 +9,6 @@ import org.springframework.scheduling.annotation.EnableScheduling
 class VakitNiyetApplication
 
 fun main(args: Array<String>) {
+    System.setProperty("java.net.preferIPv4Stack", "true")
     runApplication<VakitNiyetApplication>(*args)
 }
