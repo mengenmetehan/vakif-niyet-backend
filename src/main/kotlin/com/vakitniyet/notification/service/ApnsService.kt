@@ -26,12 +26,16 @@ class ApnsService(
         .version(HttpClient.Version.HTTP_2)
         .build()
 
+    private val teamIdTrimmed = teamId.trim()
+    private val keyIdTrimmed = keyId.trim()
+
     private val ecPrivateKey: ECPrivateKey? by lazy {
-        if (teamId.isBlank() || keyId.isBlank() || privateKey.isBlank()) {
+        if (teamIdTrimmed.isBlank() || keyIdTrimmed.isBlank() || privateKey.isBlank()) {
             log.warn("APNs yapılandırması eksik, bildirimler devre dışı")
             null
         } else {
             try {
+                log.info("APNs key yükleniyor: teamId='{}', keyId='{}'", teamIdTrimmed, keyIdTrimmed)
                 loadPrivateKey(privateKey)
             } catch (e: Exception) {
                 log.error("APNs private key yüklenemedi", e)
@@ -56,9 +60,9 @@ class ApnsService(
     private fun buildJwt(): String {
         val issuedAt = Instant.now().epochSecond
         val header = Base64.getUrlEncoder().withoutPadding()
-            .encodeToString("""{"alg":"ES256","kid":"$keyId"}""".toByteArray())
+            .encodeToString("""{"alg":"ES256","kid":"$keyIdTrimmed"}""".toByteArray())
         val payload = Base64.getUrlEncoder().withoutPadding()
-            .encodeToString("""{"iss":"$teamId","iat":$issuedAt}""".toByteArray())
+            .encodeToString("""{"iss":"$teamIdTrimmed","iat":$issuedAt}""".toByteArray())
         val signingInput = "$header.$payload"
 
         val signer = java.security.Signature.getInstance("SHA256withECDSAinP1363Format")
