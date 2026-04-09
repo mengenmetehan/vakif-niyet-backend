@@ -5,8 +5,11 @@ import io.jsonwebtoken.Jwts
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
-import org.springframework.web.reactive.function.client.WebClient
 import java.math.BigInteger
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
 import java.security.KeyFactory
 import java.security.PublicKey
 import java.security.spec.RSAPublicKeySpec
@@ -22,7 +25,7 @@ class AppleTokenVerifier(
     @Value("\${apple.bundle-id}") private val bundleId: String
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
-    private val webClient = WebClient.create("https://appleid.apple.com")
+    private val httpClient = HttpClient.newHttpClient()
     private val objectMapper = ObjectMapper()
 
     fun verify(identityToken: String): AppleUserInfo {
@@ -80,14 +83,15 @@ class AppleTokenVerifier(
 
     private fun fetchPublicKey(kid: String): PublicKey? {
         return try {
-            val response = webClient.get()
-                .uri("/auth/keys")
-                .retrieve()
-                .bodyToMono(Map::class.java)
-                .block()
+            val request = HttpRequest.newBuilder()
+                .uri(URI.create("https://appleid.apple.com/auth/keys"))
+                .GET()
+                .build()
+            val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
 
             @Suppress("UNCHECKED_CAST")
-            val keys = response?.get("keys") as? List<Map<String, Any>> ?: return null
+            val body = objectMapper.readValue(response.body(), Map::class.java) as Map<String, Any>
+            val keys = body["keys"] as? List<Map<String, Any>> ?: return null
             val jwk = keys.find { it["kid"] == kid } ?: run {
                 log.error("kid=$kid için key bulunamadı. Mevcut kid'ler: ${keys.map { it["kid"] }}")
                 return null
