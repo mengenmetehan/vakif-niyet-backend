@@ -27,7 +27,6 @@ class ApnsService(
             null
         } else {
             try {
-                System.setProperty("java.net.preferIPv4Stack", "true")
                 val normalizedKey = buildNormalizedKey(privateKey)
                 ApnsClientBuilder()
                     .setApnsServer(ApnsClientBuilder.PRODUCTION_APNS_HOST)
