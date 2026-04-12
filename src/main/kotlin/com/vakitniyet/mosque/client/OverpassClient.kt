@@ -8,26 +8,25 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
-import org.springframework.web.reactive.function.BodyInserters
-import org.springframework.web.reactive.function.client.WebClient
-import java.time.Duration
+import org.springframework.util.LinkedMultiValueMap
+import org.springframework.web.client.RestClient
 
 @Component
 class OverpassClient(
     @Value("\${overpass.base-url}") baseUrl: String
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
-    private val webClient = WebClient.create(baseUrl)
+    private val restClient = RestClient.create(baseUrl)
 
     fun searchMosques(lat: Double, lon: Double, radius: Int): List<MosqueDto> {
         val query = buildQuery(lat, lon, radius)
         return try {
-            val response = webClient.post()
+            val body = LinkedMultiValueMap<String, String>().apply { add("data", query) }
+            val response = restClient.post()
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .body(BodyInserters.fromFormData("data", query))
+                .body(body)
                 .retrieve()
-                .bodyToMono(OverpassResponse::class.java)
-                .block(Duration.ofSeconds(15))
+                .body(OverpassResponse::class.java)
 
             response?.elements.orEmpty().mapNotNull { el ->
                 val elLat = el.lat ?: el.center?.lat ?: return@mapNotNull null
