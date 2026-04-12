@@ -28,9 +28,7 @@ class AppleMapKitClient(
             val response = restClient.get()
                 .uri { builder ->
                     builder.path("/v1/search")
-                        .queryParam("q", "camii")
-                        .queryParam("q", "cami")
-                        .queryParam("q", "mosque")
+                        .queryParam("q", "camii OR cami OR mosque OR mescit OR cemevi")
                         .queryParam("userLocation", "$lat,$lon")
                         .queryParam("lang", "tr-TR")
                         .queryParam("limitToCountries", "TR")
