@@ -23,39 +23,39 @@ class AppleMapKitClient(
             return emptyList()
         }
         return try {
-            val fullUrl = "https://api.apple-mapkit.com/v1/search?q=camii+OR+cami+OR+mosque&userLocation=$lat,$lon&lang=tr-TR&limitToCountries=TR"
-            log.debug("MapKit isteği: GET {}", fullUrl)
-            val response = restClient.get()
-                .uri { builder ->
-                    builder.path("/v1/search")
-                        .queryParam("q", "camii+OR+cami+OR+mosque")
-                        .queryParam("userLocation", "$lat,$lon")
-                        .queryParam("lang", "tr-TR")
-                        .queryParam("limitToCountries", "TR")
-                        .build()
-                }
-                .header("Authorization", "Bearer ${tokenProvider.getAccessToken()}")
-                .retrieve()
-                .body(MapKitSearchResponse::class.java)
-            log.debug("MapKit ham response: results={}", response?.results?.size)
-
-            val allResults = response?.results.orEmpty().filter { it.center != null }
-            val results = allResults.filter {
-                haversineDistance(lat, lon, it.center!!.lat, it.center.lng) <= radius
+            val accessToken = tokenProvider.getAccessToken()
+            val allResults = listOf("camii", "mosque").flatMap { query ->
+                log.debug("MapKit isteği: GET https://api.apple-mapkit.com/v1/search?q={}&userLocation={},{}", query, lat, lon)
+                val response = restClient.get()
+                    .uri { builder ->
+                        builder.path("/v1/search")
+                            .queryParam("q", query)
+                            .queryParam("userLocation", "$lat,$lon")
+                            .queryParam("lang", "tr-TR")
+                            .queryParam("limitToCountries", "TR")
+                            .build()
+                    }
+                    .header("Authorization", "Bearer $accessToken")
+                    .retrieve()
+                    .body(MapKitSearchResponse::class.java)
+                log.debug("MapKit '{}' ham response: results={}", query, response?.results?.size)
+                response?.results.orEmpty().filter { it.center != null }
+                    .filter { haversineDistance(lat, lon, it.center!!.lat, it.center.lng) <= radius }
             }
-            log.info("MapKit {} sonuç döndürdü (toplamda {} vardı): lat={}, lon={}, radius={}",
-                results.size, allResults.size, lat, lon, radius)
 
-            results.mapIndexed { idx, place ->
-                    MosqueDto(
-                        id = place.muid ?: "mapkit-$idx",
-                        name = place.name ?: "Cami",
-                        lat = place.center!!.lat,
-                        lon = place.center.lng,
-                        distanceMeters = haversineDistance(lat, lon, place.center.lat, place.center.lng),
-                        source = MosqueSource.MAPKIT
-                    )
-                }
+            val unique = allResults.distinctBy { it.muid ?: "${it.center?.lat},${it.center?.lng}" }
+            log.info("MapKit {} sonuç döndürdü: lat={}, lon={}, radius={}", unique.size, lat, lon, radius)
+
+            unique.mapIndexed { idx, place ->
+                MosqueDto(
+                    id = place.muid ?: "mapkit-$idx",
+                    name = place.name ?: "Cami",
+                    lat = place.center!!.lat,
+                    lon = place.center.lng,
+                    distanceMeters = haversineDistance(lat, lon, place.center.lat, place.center.lng),
+                    source = MosqueSource.MAPKIT
+                )
+            }
         } catch (e: HttpClientErrorException) {
             log.error("MapKit API {} hatası: body={}", e.statusCode.value(), e.responseBodyAsString)
             emptyList()
