@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.WebClient.Builder
 import java.time.Duration
 
 data class QuranVersesPage(
@@ -23,10 +24,11 @@ data class QuranTranslation(
 @Component
 class QuranClient(
     @Value("\${quran.api-url}") apiUrl: String,
-    @Value("\${quran.translation-id}") private val translationId: Int
+    @Value("\${quran.translation-id}") private val translationId: Int,
+    webClientBuilder: Builder
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
-    private val webClient = WebClient.create(apiUrl)
+    private val webClient = webClientBuilder.baseUrl(apiUrl).build()
 
     /**
      * 114 sureyi sırayla çekerek tüm ayetleri getirir.

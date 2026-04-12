@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Component
@@ -41,10 +42,11 @@ data class DiyanetVakit(
 class DiyanetClient(
     private val redisTemplate: StringRedisTemplate,
     private val objectMapper: ObjectMapper,
-    @Value("\${diyanet.api-url}") private val apiUrl: String
+    @Value("\${diyanet.api-url}") private val apiUrl: String,
+    private val webClientBuilder: WebClient.Builder
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
-    private val webClient = WebClient.create(apiUrl)
+    private val webClient = webClientBuilder.baseUrl(apiUrl).build()
     private val dateFmt = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
     fun getCountries(): List<DiyanetUlke> = getCached(

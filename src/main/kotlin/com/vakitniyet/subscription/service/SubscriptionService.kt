@@ -22,10 +22,11 @@ class SubscriptionService(
     private val subscriptionRepository: SubscriptionRepository,
     @Value("\${apple.subscription.shared-secret}") private val sharedSecret: String,
     @Value("\${apple.subscription.verify-url}") private val verifyUrl: String,
-    @Value("\${apple.subscription.verify-url-sandbox}") private val sandboxUrl: String
+    @Value("\${apple.subscription.verify-url-sandbox}") private val sandboxUrl: String,
+    webClientBuilder: WebClient.Builder
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
-    private val webClient = WebClient.create()
+    private val webClient = webClientBuilder.build()
 
     fun getStatus(userId: UUID): SubscriptionStatusResponse {
         val sub = subscriptionRepository.findByUserId(userId)
