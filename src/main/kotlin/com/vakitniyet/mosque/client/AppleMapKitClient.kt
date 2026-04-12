@@ -23,16 +23,13 @@ class AppleMapKitClient(
             return emptyList()
         }
         return try {
-            // radius metre → derece (1 derece ≈ 111km)
-            val radiusDeg = radius / 111_000.0
-            val searchRegion = "${lat - radiusDeg},${lon - radiusDeg},${lat + radiusDeg},${lon + radiusDeg}"
-            log.debug("MapKit isteği: GET https://api.apple-mapkit.com/v1/search lat={}, lon={}, radius={}", lat, lon, radius)
+            val fullUrl = "https://api.apple-mapkit.com/v1/search?q=cami&userLocation=$lat,$lon&lang=tr-TR&limitToCountries=TR"
+            log.debug("MapKit isteği: GET {}", fullUrl)
             val response = restClient.get()
                 .uri { builder ->
                     builder.path("/v1/search")
                         .queryParam("q", "cami")
                         .queryParam("userLocation", "$lat,$lon")
-                        .queryParam("searchRegion", searchRegion)
                         .queryParam("lang", "tr-TR")
                         .queryParam("limitToCountries", "TR")
                         .build()
@@ -43,6 +40,7 @@ class AppleMapKitClient(
             log.debug("MapKit ham response: results={}", response?.results?.size)
 
             val results = response?.results.orEmpty().filter { it.center != null }
+                .filter { haversineDistance(lat, lon, it.center!!.lat, it.center.lng) <= radius }
             log.info("MapKit {} sonuç döndürdü: lat={}, lon={}, radius={}", results.size, lat, lon, radius)
 
             results.mapIndexed { idx, place ->
