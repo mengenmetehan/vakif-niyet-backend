@@ -28,7 +28,7 @@ class AppleMapKitClient(
             val response = restClient.get()
                 .uri { builder ->
                     builder.path("/v1/search")
-                        .queryParam("q", "camii OR cami OR mosque OR mescit OR cemevi")
+                        .queryParam("q", "cami")
                         .queryParam("userLocation", "$lat,$lon")
                         .queryParam("lang", "tr-TR")
                         .queryParam("limitToCountries", "TR")
@@ -39,9 +39,12 @@ class AppleMapKitClient(
                 .body(MapKitSearchResponse::class.java)
             log.debug("MapKit ham response: results={}", response?.results?.size)
 
-            val results = response?.results.orEmpty().filter { it.center != null }
-                .filter { haversineDistance(lat, lon, it.center!!.lat, it.center.lng) <= radius }
-            log.info("MapKit {} sonuç döndürdü: lat={}, lon={}, radius={}", results.size, lat, lon, radius)
+            val allResults = response?.results.orEmpty().filter { it.center != null }
+            val results = allResults.filter {
+                haversineDistance(lat, lon, it.center!!.lat, it.center.lng) <= radius
+            }
+            log.info("MapKit {} sonuç döndürdü (toplamda {} vardı): lat={}, lon={}, radius={}",
+                results.size, allResults.size, lat, lon, radius)
 
             results.mapIndexed { idx, place ->
                     MosqueDto(
