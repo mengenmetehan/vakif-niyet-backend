@@ -23,11 +23,15 @@ class AppleMapKitClient(
             return emptyList()
         }
         return try {
+            // radius metre → derece yaklaşımı (1 derece ≈ 111km)
+            val radiusDeg = radius / 111_000.0
             val response = restClient.get()
                 .uri { builder ->
                     builder.path("/v1/search")
-                        .queryParam("q", "mosque cami")
-                        .queryParam("userLocation", "$lat,$lon")
+                        .queryParam("q", "cami")
+                        .queryParam("searchLocation", "$lat,$lon")
+                        .queryParam("searchRegion", "${lat - radiusDeg},${lon - radiusDeg},${lat + radiusDeg},${lon + radiusDeg}")
+                        .queryParam("resultTypeFilter", "Poi")
                         .queryParam("lang", "tr-TR")
                         .queryParam("limitToCountries", "TR")
                         .build()
@@ -36,9 +40,10 @@ class AppleMapKitClient(
                 .retrieve()
                 .body(MapKitSearchResponse::class.java)
 
-            response?.results.orEmpty()
-                .filter { it.center != null }
-                .mapIndexed { idx, place ->
+            val results = response?.results.orEmpty().filter { it.center != null }
+            log.info("MapKit {} sonuç döndürdü: lat={}, lon={}, radius={}", results.size, lat, lon, radius)
+
+            results.mapIndexed { idx, place ->
                     MosqueDto(
                         id = place.muid ?: "mapkit-$idx",
                         name = place.name ?: "Cami",
