@@ -15,7 +15,7 @@ class AppleMapKitClient(
     private val tokenProvider: AppleMapKitTokenProvider
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
-    private val restClient = RestClient.create("https://maps-api.apple.com")
+    private val restClient = RestClient.create("https://api.apple-mapkit.com")
 
     fun searchMosques(lat: Double, lon: Double, radius: Int): List<MosqueDto> {
         if (!tokenProvider.isConfigured) {
@@ -23,15 +23,11 @@ class AppleMapKitClient(
             return emptyList()
         }
         return try {
-            // radius metre → derece yaklaşımı (1 derece ≈ 111km)
-            val radiusDeg = radius / 111_000.0
             val response = restClient.get()
                 .uri { builder ->
                     builder.path("/v1/search")
                         .queryParam("q", "cami")
-                        .queryParam("searchLocation", "$lat,$lon")
-                        .queryParam("searchRegion", "${lat - radiusDeg},${lon - radiusDeg},${lat + radiusDeg},${lon + radiusDeg}")
-                        .queryParam("resultTypeFilter", "Poi")
+                        .queryParam("userLocation", "$lat,$lon")
                         .queryParam("lang", "tr-TR")
                         .queryParam("limitToCountries", "TR")
                         .build()
