@@ -1,18 +1,13 @@
 package com.vakitniyet.mosque.client
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import io.jsonwebtoken.Jwts
-import org.bouncycastle.openssl.PEMParser
-import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
-import java.io.StringReader
-import java.security.KeyFactory
+import org.springframework.web.client.RestClient
 import java.security.interfaces.ECPrivateKey
-import java.security.spec.PKCS8EncodedKeySpec
 import java.time.Instant
-import java.util.Base64
 import java.util.Date
 
 @Component
@@ -22,10 +17,17 @@ class AppleMapKitTokenProvider(
     @Value("\${apple.mapkit.private-key}") private val privateKeyPem: String
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
-    private val objectMapper = ObjectMapper()
+
+    private val appleTokenClient = RestClient.create("https://maps-api.apple.com")
 
     @Volatile
-    private var cachedToken: Pair<String, Instant>? = null
+    private var cachedJwt: Pair<String, Instant>? = null
+
+    @Volatile
+    private var cachedAccessToken: Pair<String, Instant>? = null
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private data class AppleTokenResponse(val accessToken: String? = null, val expiresInSeconds: Long? = null)
 
     private val privateKey: ECPrivateKey? = runCatching { loadPrivateKey() }
         .onFailure { log.error("MapKit private key yüklenemedi: {}", it.message) }
@@ -42,7 +44,7 @@ class AppleMapKitTokenProvider(
         check(!tokenError) { "MapKit private key yüklenemedi, servis devre dışı" }
 
         val now = Instant.now()
-        val existing = cachedToken
+        val existing = cachedJwt
         if (existing != null && now.isBefore(existing.second.minusSeconds(60))) {
             return existing.first
         }
@@ -57,14 +59,35 @@ class AppleMapKitTokenProvider(
                 .expiration(Date.from(exp))
                 .signWith(privateKey, Jwts.SIG.ES256)
                 .compact()
-            cachedToken = token to exp
-            log.debug("Token: {}", objectMapper.writeValueAsString(token))
+            cachedJwt = token to exp
             log.debug("MapKit JWT yenilendi, exp={}, token_preview={}", exp, token.take(40))
             token
         } catch (e: Exception) {
             log.error("MapKit JWT üretilemedi", e)
             throw e
         }
+    }
+
+    fun getAccessToken(): String {
+        val now = Instant.now()
+        val existing = cachedAccessToken
+        if (existing != null && now.isBefore(existing.second.minusSeconds(60))) {
+            return existing.first
+        }
+
+        val jwt = getToken()
+        val response = appleTokenClient.get()
+            .uri("/v1/token")
+            .header("Authorization", "Bearer $jwt")
+            .retrieve()
+            .body(AppleTokenResponse::class.java)
+
+        val accessToken = response?.accessToken
+            ?: throw IllegalStateException("Apple token exchange yanıtında accessToken yok")
+        val ttl = response.expiresInSeconds ?: 1800
+        cachedAccessToken = accessToken to now.plusSeconds(ttl)
+        log.debug("MapKit access token alındı, ttl={}s", ttl)
+        return accessToken
     }
 
 

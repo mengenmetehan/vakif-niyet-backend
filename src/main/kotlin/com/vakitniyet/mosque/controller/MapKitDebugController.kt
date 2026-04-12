@@ -19,8 +19,9 @@ class MapKitDebugController(
                 .body(mapOf("error" to "MapKit yapılandırması eksik"))
         }
         return try {
-            val token = tokenProvider.getToken()
-            ResponseEntity.ok(mapOf("token" to token))
+            val jwt = tokenProvider.getToken()
+            val accessToken = tokenProvider.getAccessToken()
+            ResponseEntity.ok(mapOf("jwt" to jwt, "accessToken" to accessToken))
         } catch (e: Exception) {
             ResponseEntity.internalServerError()
                 .body(mapOf("error" to (e.message ?: "Token üretilemedi")))

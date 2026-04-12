@@ -15,7 +15,7 @@ class AppleMapKitClient(
     private val tokenProvider: AppleMapKitTokenProvider
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
-    private val restClient = RestClient.create("https://api.apple-mapkit.com")
+    private val restClient = RestClient.create("https://maps-api.apple.com")
 
     fun searchMosques(lat: Double, lon: Double, radius: Int): List<MosqueDto> {
         if (!tokenProvider.isConfigured) {
@@ -32,7 +32,7 @@ class AppleMapKitClient(
                         .queryParam("limitToCountries", "TR")
                         .build()
                 }
-                .header("Authorization", "Bearer ${tokenProvider.getToken()}")
+                .header("Authorization", "Bearer ${tokenProvider.getAccessToken()}")
                 .retrieve()
                 .body(MapKitSearchResponse::class.java)
 
