@@ -37,14 +37,14 @@ class AppleMapKitClient(
                 .body(MapKitSearchResponse::class.java)
 
             response?.results.orEmpty()
-                .filter { it.coordinate != null }
+                .filter { it.center != null }
                 .mapIndexed { idx, place ->
                     MosqueDto(
-                        id = place.id ?: "mapkit-$idx",
+                        id = place.muid ?: "mapkit-$idx",
                         name = place.name ?: "Cami",
-                        lat = place.coordinate!!.latitude,
-                        lon = place.coordinate.longitude,
-                        distanceMeters = haversineDistance(lat, lon, place.coordinate.latitude, place.coordinate.longitude),
+                        lat = place.center!!.lat,
+                        lon = place.center.lng,
+                        distanceMeters = haversineDistance(lat, lon, place.center.lat, place.center.lng),
                         source = MosqueSource.MAPKIT
                     )
                 }

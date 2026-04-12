@@ -21,8 +21,13 @@ data class MosqueListResponse(
 
 // --- MapKit response parsing ---
 data class MapKitSearchResponse(val results: List<MapKitPlace>?)
-data class MapKitPlace(val id: String?, val name: String?, val coordinate: MapKitCoordinate?)
-data class MapKitCoordinate(val latitude: Double, val longitude: Double)
+data class MapKitPlace(
+    val muid: String?,
+    val name: String?,
+    val center: MapKitCenter?,
+    val formattedAddressLines: List<String>?
+)
+data class MapKitCenter(val lat: Double, val lng: Double)
 
 // --- Overpass response parsing ---
 data class OverpassResponse(val elements: List<OverpassElement>?)
