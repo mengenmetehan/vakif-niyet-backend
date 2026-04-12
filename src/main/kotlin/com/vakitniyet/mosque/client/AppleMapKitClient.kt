@@ -23,12 +23,14 @@ class AppleMapKitClient(
             return emptyList()
         }
         return try {
-            val fullUrl = "https://api.apple-mapkit.com/v1/search?q=cami&userLocation=$lat,$lon&lang=tr-TR&limitToCountries=TR"
+            val fullUrl = "https://api.apple-mapkit.com/v1/search?q=camii+OR+cami+OR+mosque&userLocation=$lat,$lon&lang=tr-TR&limitToCountries=TR"
             log.debug("MapKit isteği: GET {}", fullUrl)
             val response = restClient.get()
                 .uri { builder ->
                     builder.path("/v1/search")
+                        .queryParam("q", "camii")
                         .queryParam("q", "cami")
+                        .queryParam("q", "mosque")
                         .queryParam("userLocation", "$lat,$lon")
                         .queryParam("lang", "tr-TR")
                         .queryParam("limitToCountries", "TR")
