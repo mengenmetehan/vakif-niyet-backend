@@ -52,6 +52,7 @@ class AppleMapKitTokenProvider(
             val token = Jwts.builder()
                 .header().type("JWT").keyId(keyId).and()
                 .issuer(teamId)
+                .subject("maps.VakitNiyetMaps")
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(exp))
                 .signWith(privateKey, Jwts.SIG.ES256)
