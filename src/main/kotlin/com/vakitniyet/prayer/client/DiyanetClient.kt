@@ -25,7 +25,8 @@ data class DiyanetSehir(
 
 data class DiyanetIlce(
     @JsonProperty("IlceID") val ilceId: String,
-    @JsonProperty("IlceAdi") val ilceAdi: String
+    @JsonProperty("IlceAdi") val ilceAdi: String,
+    @JsonProperty("DisplayID") val displayId: String = ilceId
 )
 
 data class DiyanetVakit(
@@ -67,7 +68,9 @@ class DiyanetClient(
             ttl = Duration.ofDays(30),
             fetch = { fetchList("/ilceler/$ilId", DiyanetIlce::class.java) }
         )
-        return (districts + istanbulMissingDistricts(ilId, districts)).sortedBy { it.ilceAdi }
+        return (districts + istanbulMissingDistricts(ilId, districts))
+            .sortedBy { it.ilceAdi }
+            .map { it.copy(displayId = "${it.ilceId}_${it.ilceAdi}") }
     }
 
     private fun istanbulMissingDistricts(ilId: String, existing: List<DiyanetIlce>): List<DiyanetIlce> {
