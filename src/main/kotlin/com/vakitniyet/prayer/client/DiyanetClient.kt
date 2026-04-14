@@ -61,11 +61,31 @@ class DiyanetClient(
         fetch = { fetchList("/sehirler/$ulkeId", DiyanetSehir::class.java) }
     )
 
-    fun getDistricts(ilId: String): List<DiyanetIlce> = getCached(
-        key = "diyanet:ilceler:$ilId",
-        ttl = Duration.ofDays(30),
-        fetch = { fetchList("/ilceler/$ilId", DiyanetIlce::class.java) }
-    )
+    fun getDistricts(ilId: String): List<DiyanetIlce> {
+        val districts = getCached(
+            key = "diyanet:ilceler:$ilId",
+            ttl = Duration.ofDays(30),
+            fetch = { fetchList("/ilceler/$ilId", DiyanetIlce::class.java) }
+        )
+        return (districts + istanbulMissingDistricts(ilId, districts)).sortedBy { it.ilceAdi }
+    }
+
+    private fun istanbulMissingDistricts(ilId: String, existing: List<DiyanetIlce>): List<DiyanetIlce> {
+        if (ilId != "539") return emptyList()
+        val existingNames = existing.map { it.ilceAdi }.toSet()
+        return ISTANBUL_MISSING_DISTRICTS
+            .filter { it.ilceAdi !in existingNames }
+    }
+
+    companion object {
+        private const val ISTANBUL_ILCE_ID = "9541"
+        private val ISTANBUL_MISSING_DISTRICTS = listOf(
+            "ADALAR", "ATAŞEHIR", "BAĞCILAR", "BAHÇELİEVLER", "BAKIRKÖY",
+            "BAYRAMPAŞA", "BEŞİKTAŞ", "BEYOĞLU", "ESENLER", "EYÜPSULTAN",
+            "FATİH", "GAZİOSMANPAŞA", "GÜNGÖREN", "KADIKÖY", "KAĞITHANE",
+            "SARIYER", "ŞİŞLİ", "ÜMRANİYE", "ÜSKÜDAR", "ZEYTİNBURNU"
+        ).map { DiyanetIlce(ilceId = ISTANBUL_ILCE_ID, ilceAdi = it) }
+    }
 
     fun getTodayTimes(ilceId: String): DiyanetVakit? {
         val today = LocalDate.now()
