@@ -25,8 +25,7 @@ data class DiyanetSehir(
 
 data class DiyanetIlce(
     @JsonProperty("IlceID") val ilceId: String,
-    @JsonProperty("IlceAdi") val ilceAdi: String,
-    @JsonProperty("DisplayID") val displayId: String = ilceId
+    @JsonProperty("IlceAdi") val ilceAdi: String
 )
 
 data class DiyanetVakit(
@@ -70,7 +69,7 @@ class DiyanetClient(
         )
         return (districts + istanbulMissingDistricts(ilId, districts))
             .sortedBy { it.ilceAdi }
-            .map { it.copy(displayId = "${it.ilceId}_${it.ilceAdi}") }
+            .map { it.copy(ilceId = "${it.ilceId}_${it.ilceAdi}") }
     }
 
     private fun istanbulMissingDistricts(ilId: String, existing: List<DiyanetIlce>): List<DiyanetIlce> {
@@ -92,10 +91,13 @@ class DiyanetClient(
 
     fun getTodayTimes(ilceId: String): DiyanetVakit? {
         val today = LocalDate.now()
-        val monthly = getMonthlyTimes(ilceId, today)
+        val monthly = getMonthlyTimes(resolveIlceId(ilceId), today)
         val todayStr = today.format(dateFmt)
         return monthly.find { it.miladiTarihKisa == todayStr }
     }
+
+    // "9541_KADIKÖY" → "9541", "9542" → "9542"
+    private fun resolveIlceId(ilceId: String): String = ilceId.substringBefore("_")
 
     private fun getMonthlyTimes(ilceId: String, date: LocalDate): List<DiyanetVakit> {
         val cacheKey = "diyanet:vakitler:$ilceId:${date.year}-${date.monthValue}"
