@@ -5,6 +5,7 @@ import com.vakitniyet.notification.dto.NotificationSettingsResponse
 import com.vakitniyet.notification.dto.NotificationTestResponse
 import com.vakitniyet.notification.dto.UpdateNotificationSettingsRequest
 import com.vakitniyet.notification.entity.NotificationContentType
+import com.vakitniyet.notification.scheduler.DailyNotificationScheduleBuilder
 import com.vakitniyet.notification.scheduler.PrayerNotificationDispatcher
 import com.vakitniyet.notification.service.ApnsService
 import com.vakitniyet.notification.service.NotificationContentProvider
@@ -22,7 +23,8 @@ class NotificationSettingsController(
     private val contentProvider: NotificationContentProvider,
     private val apnsService: ApnsService,
     private val userRepository: UserRepository,
-    private val dispatcher: PrayerNotificationDispatcher
+    private val dispatcher: PrayerNotificationDispatcher,
+    private val scheduleBuilder: DailyNotificationScheduleBuilder
 ) {
     private val log = LoggerFactory.getLogger(NotificationSettingsController::class.java)
 
@@ -110,6 +112,12 @@ class NotificationSettingsController(
     fun triggerDispatch(): ResponseEntity<Map<String, String>> {
         dispatcher.dispatch()
         return ResponseEntity.ok(mapOf("status" to "dispatch tetiklendi, logları kontrol et"))
+    }
+
+    @PostMapping("/developer/rebuild-schedule")
+    fun rebuildSchedule(): ResponseEntity<Map<String, String>> {
+        scheduleBuilder.buildDailySchedule()
+        return ResponseEntity.ok(mapOf("status" to "günlük plan yeniden oluşturuldu, logları kontrol et"))
     }
 
     @PutMapping("/settings")

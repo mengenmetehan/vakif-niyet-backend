@@ -29,7 +29,8 @@ class SecurityConfig(
                     "/swagger-ui.html",
                     "/api/public/mapkit/**",
                     "/v3/api-docs/**",
-                    "/api/notification/developer/apns-test"
+                    "/api/notification/developer/apns-test",
+                    "/api/notification/developer/rebuild-schedule"
                 ).permitAll()
                 it.anyRequest().authenticated()
             }

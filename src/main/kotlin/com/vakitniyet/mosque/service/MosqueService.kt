@@ -54,7 +54,7 @@ class MosqueService(
             val overpassResults = overpassClient.searchMosques(lat, lon, radius)
 
             if (overpassResults.isEmpty()) {
-                log.debug("Overpass sonuç döndürmedi, cache güncellenmedi: key={}", key)
+            log.debug("Overpass sonuç döndürmedi, cache güncellenmedi: key={}", key)
                 return CompletableFuture.completedFuture(null)
             }
 

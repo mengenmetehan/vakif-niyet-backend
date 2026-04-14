@@ -41,7 +41,7 @@ class OverpassClient(
                 )
             }
         } catch (e: Exception) {
-            log.warn("Overpass API hatası (mevcut cache korunacak): ${e.message}")
+            log.debug("Overpass API hatası (mevcut cache korunacak): ${e.message}")
             emptyList()
         }
     }
