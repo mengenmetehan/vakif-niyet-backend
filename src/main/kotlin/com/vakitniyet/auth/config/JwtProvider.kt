@@ -1,6 +1,7 @@
 package com.vakitniyet.auth.config
 
 import io.jsonwebtoken.Claims
+import io.jsonwebtoken.ExpiredJwtException
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
 import org.springframework.beans.factory.annotation.Value
@@ -41,6 +42,16 @@ class JwtProvider(
 
     fun isRefreshToken(token: String): Boolean =
         getClaims(token)["type"] == "refresh"
+
+    // İmzası geçerli ama süresi dolmuş token'dan userId çıkarır
+    fun getUserIdFromExpiredToken(token: String): UUID? = try {
+        getClaims(token)
+        null // expired değil, buraya düşmemeli
+    } catch (e: ExpiredJwtException) {
+        runCatching { UUID.fromString(e.claims.subject) }.getOrNull()
+    } catch (e: Exception) {
+        null // imza geçersiz veya başka hata
+    }
 
     private fun getClaims(token: String): Claims =
         Jwts.parser()
